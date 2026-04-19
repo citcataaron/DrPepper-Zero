@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hawaii Surf Pong - 2 Player</title>
+    <style>
+        /* 1. Page Styling */
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f8ff; /* Matching your site's Alice Blue */
+            color: #2c3e50;
+            font-family: 'Trebuchet MS', sans-serif;
+            overflow: hidden; /* Prevents the page from scrolling while playing */
+        }
+
+        #scoreboard {
+            font-size: 60px;
+            font-weight: bold;
+            color: #d35400; /* Sunset Orange */
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* 2. Game Canvas Styling */
+        canvas {
+            border: 8px solid #2980b9; /* Ocean Blue */
+            background-color: #f4e4bc; /* Sand Color */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .controls-info {
+            display: flex;
+            justify-content: space-between;
+            width: 800px;
+            margin-top: 15px;
+            font-weight: bold;
+            color: #2980b9;
+        }
+
+        .back-btn {
+            margin-top: 30px;
+            text-decoration: none;
+            color: white;
+            background: #d35400;
+            padding: 12px 25px;
+            border-radius: 25px;
+            transition: 0.3s;
+            font-weight: bold;
+        }
+
+        .back-btn:hover {
+            background: #e67e22;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="scoreboard">0 | 0</div>
+    
+    <canvas id="pongCanvas" width="800" height="400"></canvas>
+
+    <div class="controls-info">
+        <div>Player 1: W (Up) | S (Down)</div>
+        <div>Player 2: Up Arrow | Down Arrow</div>
+    </div>
+    
+    <a href="fromScratch.html" class="back-btn">← Back to Mission Pics</a>
+
+    <script>
+        const canvas = document.getElementById("pongCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreElement = document.getElementById("scoreboard");
+
+        // Game Settings & Colors
+        const OCEAN_BLUE = "#2980b9";
+        const COCONUT_BROWN = "#6e4f32";
+        const SAND_WHITE = "#f4e4bc";
+        const BALL_START_SPEED = 5;
+        const PADDLE_SPEED = 8;
+
+        let score1 = 0;
+        let score2 = 0;
+
+        // Game Objects
+        const ball = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 12,
+            speedX: BALL_START_SPEED,
+            speedY: BALL_START_SPEED
+        };
+
+        const p1 = {
+            x: 10,
+            y: canvas.height / 2 - 50,
+            width: 15,
+            height: 100,
+            dy: 0
+        };
+
+        const p2 = {
+            x: canvas.width - 25,
+            y: canvas.height / 2 - 50,
+            width: 15,
+            height: 100,
+            dy: 0
+        };
+
+        // 3. Control Logic
+        window.addEventListener("keydown", (e) => {
+            // Player 1
+            if (e.key.toLowerCase() === "w") p1.dy = -PADDLE_SPEED;
+            if (e.key.toLowerCase() === "s") p1.dy = PADDLE_SPEED;
+            // Player 2
+            if (e.key === "ArrowUp") { e.preventDefault(); p2.dy = -PADDLE_SPEED; }
+            if (e.key === "ArrowDown") { e.preventDefault(); p2.dy = PADDLE_SPEED; }
+        });
+
+        window.addEventListener("keyup", (e) => {
+            if (e.key.toLowerCase() === "w" || e.key.toLowerCase() === "s") p1.dy = 0;
+            if (e.key === "ArrowUp" || e.key === "ArrowDown") p2.dy = 0;
+        });
+
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.speedX = (Math.random() > 0.5 ? 1 : -1) * BALL_START_SPEED;
+            ball.speedY = (Math.random() > 0.5 ? 1 : -1) * BALL_START_SPEED;
+        }
+
+        // 4. Game Physics
+        function update() {
+            // Move Ball
+            ball.x += ball.speedX;
+            ball.y += ball.speedY;
+
+            // Move Paddles
+            p1.y += p1.dy;
+            p2.y += p2.dy;
+
+            // Constrain Paddles to screen
+            p1.y = Math.max(0, Math.min(canvas.height - p1.height, p1.y));
+            p2.y = Math.max(0, Math.min(canvas.height - p2.height, p2.y));
+
+            // Wall Bounce
+            if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
+                ball.speedY = -ball.speedY;
+            }
+
+            // Paddle Collision
+            let paddle = (ball.x < canvas.width / 2) ? p1 : p2;
+            if (ball.x + ball.radius > paddle.x && 
+                ball.x - ball.radius < paddle.x + paddle.width &&
+                ball.y + ball.radius > paddle.y && 
+                ball.y - ball.radius < paddle.y + paddle.height) {
+                
+                ball.speedX = -ball.speedX;
+                ball.speedX *= 1.05; // Speed up the coconut!
+            }
+
+            // Scoring
+            if (ball.x < 0) {
+                score2++;
+                updateScore();
+                resetBall();
+            } else if (ball.x > canvas.width) {
+                score1++;
+                updateScore();
+                resetBall();
+            }
+        }
+
+        function updateScore() {
+            scoreElement.innerHTML = `${score1} | ${score2}`;
+        }
+
+        // 5. Drawing
+        function draw() {
+            // Clear and draw Sand
+            ctx.fillStyle = SAND_WHITE;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Net (Bubbles)
+            ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+            for (let i = 0; i < canvas.height; i += 30) {
+                ctx.fillRect(canvas.width / 2 - 1, i, 2, 15);
+            }
+
+            // Draw Ocean Paddles
+            ctx.fillStyle = OCEAN_BLUE;
+            ctx.fillRect(p1.x, p1.y, p1.width, p1.height);
+            ctx.fillRect(p2.x, p2.y, p2.width, p2.height);
+
+            // Draw Coconut
+            ctx.fillStyle = COCONUT_BROWN;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Coconut Shine
+            ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+            ctx.beginPath();
+            ctx.arc(ball.x - 4, ball.y - 4, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
